@@ -334,57 +334,14 @@ def find_closest(with_url, loc, tod, final):
     final = top_recc(sorted_d[mask], final)
     return final
 
-def final_output(days, final):
-    time = ['MORNING', 'EVENING']
-    fields = ['NAME', 'CATEGORY', 'LOCATION', 'PRICE', 'RATING']
-    recommendations = ['Recommendation 1:', 'Recommendation 2:']
-
-    tab = []
-    for i in range(days):
-        print(final)
-        print(type(final))
-        images = final['image'][i*4:(i+1)*4]
-        # print(images)
-        # print("hello" + str(images))
-        image = []
-        # image = [open(str(i), "rb").read() for i in images]
-        # image = [Image.open(i, mode='r') for i in images]
-        for k in images :
-          if k is None:
-            image.append(open(str(output_str[0] + '/Image_1.jpg'), "rb").read())
-          else :
-            image.append(open(str(k), "rb").read())
-
-        name = [re.sub('_',' ',i).capitalize() for i in final['name'][i*4:(i+1)*4]]
-        category = [re.sub('_',' ',i).capitalize() for i in final['category'][i*4:(i+1)*4]]
-        location = ["("+str(i[0])+","+str(i[1])+")" for i in final['location'][i*4:(i+1)*4]]
-        price = [str(i) for i in final['price'][i*4:(i+1)*4]]
-        rating = [str(i) for i in final['rating'][i*4:(i+1)*4]]
-        
-        print(name)
-        print(category)
-        print(location)
-        print(price)
-        print(rating)
-
-    return name
-
 
 # calling the model
 att_df = pd.read_json(output_str[0] + '/etl/attractions.json',orient='records')
 
 import datetime
 
-user_name = "akhil"
-province = "british_columbia"
-low = 115.0
-high = 205.0
-cat_rating = {'private_&_custom_tours': 4.0, 'luxury_&_special_occasions': 3.0, 'sightseeing_tickets_&_passes': 1.0, 'multi-day_&_extended_tours': 3.0, 'walking_&_biking_tours': 1.0}
-begin_date = datetime.date(2023,4,4)
-end_date = datetime.date(2023,4,5)
-
 #main call function.
-def predict_api_call():
+def predict_api_call(province, low, high, cat_rating, begin_date, end_date):
   filename, user, rbm_att = get_recc(att_df, cat_rating)
   with_url = filter_df(filename, user, low, high, province, att_df)
   final = dict()
@@ -413,9 +370,4 @@ def predict_api_call():
           else:
               final = top_recc(with_url, final)
               print('i is ', i)
-  days = (end_date - begin_date).days + 1
-  with open(output_str[0] + "/out.json", "w") as file:
-      json.dump(final, file)
-  final_output(days,final)
-
-predict_api_call()
+  return final

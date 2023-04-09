@@ -1,0 +1,7 @@
+USER_NAME = 'user_name'
+PROVINCE = 'province' 
+LOWEST_PRICE = 'low' 
+HIGHEST_PRICE = 'high' 
+CAT_RATING = 'cat_rating'
+TRIP_BEGIN_DATE = 'begin_date'
+TRIP_END_DATE = 'end_date'

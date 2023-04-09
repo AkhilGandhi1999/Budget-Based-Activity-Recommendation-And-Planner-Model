@@ -1,0 +1,18 @@
+from flask import Flask, request
+import constants
+from model import predict_api_call
+import datetime
+
+app = Flask(__name__)
+
+@app.route('/get_recommadations', methods=('GET', 'POST'))
+def get_recommadations():
+    if request.method == 'POST':
+        province = request.get_json().get(constants.PROVINCE)
+        low = request.get_json().get(constants.LOWEST_PRICE)
+        high = request.get_json().get(constants.HIGHEST_PRICE)
+        cat_rating = request.get_json().get(constants.CAT_RATING)
+        begin_date = datetime.datetime.strptime(request.get_json().get(constants.TRIP_BEGIN_DATE), '%Y-%m-%d').date()
+        end_date = datetime.datetime.strptime(request.get_json().get(constants.TRIP_END_DATE), '%Y-%m-%d').date()
+
+    return predict_api_call(province, low, high, cat_rating, begin_date, end_date)
