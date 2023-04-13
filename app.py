@@ -16,3 +16,5 @@ def get_recommadations():
         end_date = datetime.datetime.strptime(request.get_json().get(constants.TRIP_END_DATE), '%Y-%m-%d').date()
 
     return predict_api_call(province, low, high, cat_rating, begin_date, end_date)
+
+

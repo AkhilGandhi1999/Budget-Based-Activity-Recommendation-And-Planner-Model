@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import re
 import nltk
+import base64
 import tensorflow as tf
 import tensorflow.compat.v1 as tf
 import matplotlib
@@ -17,6 +18,10 @@ from PIL import Image
 from nltk.corpus import wordnet
 import subprocess
 import json
+import cv2
+import io
+from base64 import encodebytes
+from PIL import Image
 
 #initialize section
 nltk.download('wordnet')
@@ -293,11 +298,12 @@ def get_image3(name):
     name = name.split(",")[0]
     try:
       downloader.download(name, limit=1,  output_dir=output_str[0] + '/images2/', adult_filter_off=True, force_replace=False, timeout=60, verbose=True)
-        
-      for filename in glob.glob(output_str[0] + "/images2/{name}/*jpg".format(name=name)) + glob.glob("/content/images2/{name}/*png".format(name=name)):
+      
+      for filename in glob.glob(output_str[0] + "/images2/{name}/*jpg".format(name=name)) + glob.glob(output_str[0] + "/images2/{name}/*png".format(name=name)):
             return filename
     except:
-      for filename in glob.glob(output_str[0] + "/images2/*jpg"):
+
+      for filename in glob.glob(output_str[0] + "/images2/{name}/*jpg".format(name = name)):
             return filename
 
 def top_recc(with_url, final):
@@ -305,17 +311,30 @@ def top_recc(with_url, final):
     while(1):
         print("this is i :", i)
         first_recc = with_url.iloc[[i]]
-        # print('hello' + first_recc['name'].values.T[0])
         if(first_recc['name'].values.T[0] not in final['name']):
             final['name'].append(first_recc['name'].values.T[0])
             final['location'].append(first_recc[['latitude','longitude']].values.tolist()[0])
             final['price'].append(first_recc['price'].values.T[0])
             final['rating'].append(first_recc['rating'].values.T[0])
-            final['image'].append(get_image3(first_recc['name'].values.T[0]))
+
+            image_location = get_image3(first_recc['name'].values.T[0]);
+            if image_location is None:
+                image_location = output_str[0] + '/Image_1.jpg';
+            with open(image_location, 'rb') as f:
+                img_data = f.read()
+                encoded_img_data = base64.b64encode(img_data).decode('utf-8')
+            final['image'].append(encoded_img_data)
             final['category'].append(first_recc['category'].values.T[0])
             return final
         else:
             i+=1
+
+def get_response_image(image_path):
+    pil_img = Image.open(image_path, mode='r') # reads the PIL image
+    byte_arr = io.BytesIO()
+    pil_img.save(byte_arr, format='PNG') # convert the PIL image to byte array
+    encoded_img = encodebytes(byte_arr.getvalue()).decode('ascii') # encode as base64
+    return encoded_img
 
 def find_closest(with_url, loc, tod, final):
     syns1 = wordnet.synsets("evening")
