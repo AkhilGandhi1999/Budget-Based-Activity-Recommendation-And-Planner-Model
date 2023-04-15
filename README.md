@@ -10,3 +10,6 @@ input format for POST request:
     "begin_date": "2023-04-05",
     "end_date": "2023-04-06"   
 }
+
+running the flask app:
+    flask --app app --debug -p 5000
