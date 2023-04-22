@@ -542,7 +542,7 @@ def init_hotel_recc(place, spark):
 #def init_hotel_recc(name, place, amenities_pref):
         ## Reading file containing hotel details after removing duplicates
     del_dup = spark.read.json(output_str[0] + '/etl/del_dup')
-
+    place = place.lower()
     ## Reading file containing hotel details after removing duplicates and exploding amenities
     newh_df = spark.read.json(output_str[0] + '/etl/newh_df')
 

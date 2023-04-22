@@ -27,4 +27,4 @@ def get_recommadations():
 
 @app.route('/get_hotel_recommandations')
 def get_hotel_recommandations():
-    return init_hotel_recc('british columbia', spark)
+    return init_hotel_recc(request.args.get('province'), spark)
