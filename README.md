@@ -10,7 +10,6 @@ input format for POST request:
     "begin_date": "2023-04-05",
     "end_date": "2023-04-06"   
 }
-
 For hotel recommandations:
 http://127.0.0.1:5001/hotels/get_hotel_recommandations?province=british columbia
 
