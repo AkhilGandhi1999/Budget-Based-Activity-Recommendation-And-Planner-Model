@@ -23,6 +23,31 @@ import io
 from base64 import encodebytes
 from PIL import Image
 
+# Commented out IPython magic to ensure Python compatibility.
+import pandas as pd
+import ipywidgets as w
+from IPython.display import display, IFrame
+import pyspark
+from pyspark.sql import SQLContext, functions, types
+from pyspark.sql import Row
+import matplotlib.pyplot as plt
+# from hotel_recc import *
+# %matplotlib inline
+
+import pandas as pd
+import ipywidgets as w
+from IPython.display import display, IFrame
+import math, re, numpy as np, pyspark, glob
+from urllib.parse import quote
+from urllib.request import Request, urlopen
+from google_images_download import google_images_download
+from pyspark.sql import SQLContext, functions, types
+from pyspark.ml.recommendation import ALS, ALSModel
+from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.ml.feature import StringIndexer
+from pyspark.sql import Row
+from geopy.geocoders import Nominatim
+
 #initialize section
 nltk.download('wordnet')
 tf.disable_v2_behavior()
@@ -31,6 +56,7 @@ matplotlib.use('agg')
 
 output = subprocess.check_output(['pwd'])
 output_str = output.decode('utf-8').split('\n')
+    
 
 
 #code section
@@ -306,10 +332,10 @@ def get_image3(name):
       for filename in glob.glob(output_str[0] + "/images2/{name}/*jpg".format(name = name)):
             return filename
 
+
 def top_recc(with_url, final):
     i=0
     while(1):
-        print("this is i :", i)
         first_recc = with_url.iloc[[i]]
         if(first_recc['name'].values.T[0] not in final['name']):
             final['name'].append(first_recc['name'].values.T[0])
@@ -373,20 +399,189 @@ def predict_api_call(province, low, high, cat_rating, begin_date, end_date):
   final['category'] = []
 
   for i in range(1, (end_date - begin_date).days + 2):
-      for j in range(2):
+      for j in range(4):
           final['timeofday'].append('Morning')
-      for j in range(2):
+      for j in range(4):
           final['timeofday'].append('Evening')
 
   for i in range(len(final['timeofday'])):
-      if i % 4 == 0:
+      if i % 8 == 0:
           final = top_recc(with_url, final)
-          print('i is ', i)
       else:
           if len(final['location']) > i and len(final['timeofday']) > i:
               final = find_closest(with_url, final['location'][i], final['timeofday'][i], final)
-              print('i is ', i)
           else:
               final = top_recc(with_url, final)
-              print('i is ', i)
   return final
+
+#----------------------------------------------------------------
+#
+#                   HOTEL RECOMMANDATION CODE
+#
+#----------------------------------------------------------------
+def get_rating(x):
+    val = x / 5
+    if x >= 0 and x <= val:
+        return 1
+    elif x > val and x <= 2*val:
+        return 2
+    elif x > 2*val and x <= 3*val:
+        return 3
+    elif x > 3*val and x <= 4*val:
+        return 4
+    else:
+        return 5
+
+def amenities_rating(spark, amenities_pref, newh_df):
+    pa_df = pd.DataFrame(amenities_pref,columns=["amenities_pref"])
+
+    a_df = spark.createDataFrame(pa_df)
+    a_df.createOrReplaceTempView('a_df')
+    
+    newh_df.createOrReplaceTempView('del_dup')
+    newa_df  = spark.sql("SELECT * FROM newh_df INNER JOIN a_df WHERE newh_df.amenities=a_df.amenities_pref")
+
+    ameni_comb = newa_df.groupBy(functions.col("id")).agg(functions.collect_list( functions.col("amenities")).alias("amenities"))
+    
+    amenities_len=ameni_comb.withColumn("ameni_len",functions.size(ameni_comb["amenities"])).orderBy(functions.col("ameni_len"), ascending=False)
+    amenities_len.createOrReplaceTempView("amenities_len")
+
+    ameni_df = spark.sql("SELECT a.id,h.amenities,a.ameni_len FROM del_dup h INNER JOIN amenities_len a WHERE h.id=a.id ORDER BY a.ameni_len DESC")
+    
+    find_rating = functions.udf(lambda a: get_rating(a), types.IntegerType())
+    usr_rating = ameni_df.withColumn("rating",find_rating("ameni_len"))
+    return usr_rating
+
+def model_train(spark, usr_rating):
+    ## Adding new user info to original dataset for training
+
+    u_id_df = spark.read.json(output_str[0] + '/etl/u_id_df')
+    u_id_df.createOrReplaceTempView('u_id_df')
+    uid_count = u_id_df.select("user_id").distinct().count()
+
+    usrid_df = usr_rating.withColumn("usr_id", functions.lit(uid_count)).join(u_id_df.select(["id","att_id"]), "id")
+    usrid_final_df = usrid_df.select(usrid_df["usr_id"].alias("user_id"),usrid_df["att_id"].alias("att_id"),usrid_df["rating"].alias("user_rating"))
+    return usrid_final_df
+
+
+def get_hotel_recc(spark, usrid_s2):
+    als_model = ALSModel.load(output_str[0] + "/mf_models/model_file")
+
+    user = usrid_s2.select("user_id").distinct()
+    recomm = als_model.recommendForUserSubset(user,50)
+    recomm.createOrReplaceTempView('recomm')
+
+    recomm_df  = spark.sql("SELECT user_id,explode(recommendations) as recommendations FROM recomm")
+
+    get_attid = recomm_df.withColumn("att_id",functions.col("recommendations.att_id")).withColumn("rating",functions.col("recommendations.rating"))
+    get_attid.createOrReplaceTempView("get_attid")
+    
+    u_id_df = spark.read.json(output_str[0] + '/etl/u_id_df')
+    u_id_df.createOrReplaceTempView('u_id_df')
+    u_tempdf = spark.sql("SELECT u_id_df.id FROM u_id_df INNER JOIN get_attid on u_id_df.att_id=get_attid.att_id")
+
+    return u_tempdf
+
+# def get_image(name):
+#     name = re.sub(' ','_',name)
+#     response = google_images_download.googleimagesdownload()
+#     args_list = ["keywords", "keywords_from_file", "prefix_keywords", "suffix_keywords",
+#              "limit", "format", "color", "color_type", "usage_rights", "size",
+#              "exact_size", "aspect_ratio", "type", "time", "time_range", "delay", "url", "single_image",
+#              "output_directory", "image_directory", "no_directory", "proxy", "similar_images", "specific_site",
+#              "print_urls", "print_size", "print_paths", "metadata", "extract_metadata", "socket_timeout",
+#              "thumbnail", "language", "prefix", "chromedriver", "related_images", "safe_search", "no_numbering",
+#              "offset", "no_download"]
+#     args = {}
+#     for i in args_list:
+#         args[i]= None
+#     args["keywords"] = name
+#     args['limit'] = 1
+#     params = response.build_url_parameters(args)
+#     url = 'https://www.google.com/search?q=' + quote(name) + '&espv=2&biw=1366&bih=667&site=webhp&source=lnms&tbm=isch' + params + '&sa=X&ei=XosDVaCXD8TasATItgE&ved=0CAcQ_AUoAg'
+#     try:
+#         response.download(args)
+#         for filename in glob.glob("downloads/{name}/*jpg".format(name=name))+glob.glob("downloads/{name}/*png".format(name=name)):
+#             return filename
+#     except:
+#         for filename in glob.glob("downloads/*jpg"):
+#             return filename
+
+# def hotel_image(name):
+#     name = name.split(",")[0]
+#     try:
+#       downloader.download(name, limit=1,  output_dir= output_str[0] + 'images2/', adult_filter_off=True, force_replace=False, timeout=60, verbose=True)
+        
+#       for filename in glob.glob(output_str[0] + "images2/{name}/*jpg".format(name=name)) + glob.glob("/content/images2/{name}/*png".format(name=name)):
+#             return filename
+#     except:
+#       for filename in glob.glob("/content/images2/*jpg"):
+#             return filename
+        
+# def get_top_amenities():
+#     sc=pyspark.SparkContext(appName="project")
+#     spark = SQLContext(sc)
+#     ## Reading file containing hotel details after removing duplicates
+#     del_dup = spark.read.json( + '/etl/del_dup')
+
+#     ## Reading file containing hotel details after removing duplicates and exploding amenities
+#     newh_df = spark.read.json(output_str[0] + '/etl/newh_df')
+
+#     del_dup.createOrReplaceTempView('del_dup')
+#     newh_df.createOrReplaceTempView('newh_df')
+
+#     ## Finding top 15 amentities to ask users to select inorder to provide hotel recommendations based on amenities chosen
+#     newh1_df  = spark.sql("SELECT amenities,COUNT(amenities) AS tot_count FROM newh_df GROUP BY amenities ORDER BY tot_count DESC")
+#     top_amenities = [x[0] for x in newh1_df.head(16) if x[0] != '']
+#     print(top_amenities)
+#     return top_amenities
+
+
+
+def init_hotel_recc(place, spark):
+#def init_hotel_recc(name, place, amenities_pref):
+        ## Reading file containing hotel details after removing duplicates
+    del_dup = spark.read.json(output_str[0] + '/etl/del_dup')
+
+    ## Reading file containing hotel details after removing duplicates and exploding amenities
+    newh_df = spark.read.json(output_str[0] + '/etl/newh_df')
+
+    del_dup.createOrReplaceTempView('del_dup')
+    newh_df.createOrReplaceTempView('newh_df')
+
+    usr_rating = amenities_rating(spark, [" Suites", " Wheelchair Access", " Microwave", " Breakfast included", "Laundry Service"], newh_df)
+
+    usrid_s2 = model_train(spark, usr_rating)
+    u_tempdf = get_hotel_recc(spark, usrid_s2)
+
+
+    hotel_df = del_dup.join(u_tempdf, "id").withColumn("address",functions.lower(functions.col("address")))
+    user_location = place
+    hotel_sugg = hotel_df.where(hotel_df.address.contains(user_location))
+
+    print('user_location', user_location)
+    print(hotel_sugg.count())
+    recc = hotel_sugg.dropna().toPandas()
+
+    # Commented out IPython magic to ensure Python compatibility.
+    # %%capture
+    final = dict()
+
+    final['address'] = recc[:5]['address'].values.tolist()
+    final['experience'] = recc[:5]['hotel_experience'].values.tolist()
+    final['name'] = recc[:5]['hotel_name'].values.tolist()
+    final['rating'] = recc[:5]['hotel_rating'].values.tolist()
+    final['location'] = [i[1:-1] for i in recc[:5]['location'].values.tolist()]
+    final['price'] = recc[:5]['price'].values.tolist()
+    final['image'] = [getBase64Image(i) for i in recc[:5]['hotel_name'].values.tolist()]
+    
+    return final
+
+def getBase64Image(name):
+    image_location = get_image3(name);
+    if image_location is None:
+        image_location = output_str[0] + '/Image_1.jpg';
+    with open(image_location, 'rb') as f:
+        img_data = f.read()
+        encoded_img_data = base64.b64encode(img_data).decode('utf-8')
+        return encoded_img_data

@@ -1003,16 +1003,16 @@ recc = hotel_sugg.dropna().toPandas()
 
 # Commented out IPython magic to ensure Python compatibility.
 # %%capture
-# final = dict()
-# final['address'] = recc[:5]['address'].values.tolist()
-# final['amenities'] = recc[:5]['amenities'].values.T.tolist()
-# final['experience'] = recc[:5]['hotel_experience'].values.tolist()
-# final['name'] = recc[:5]['hotel_name'].values.tolist()
-# final['rating'] = recc[:5]['hotel_rating'].values.tolist()
-# final['location'] = [i[1:-1] for i in recc[:5]['location'].values.tolist()]
-# final['price'] = recc[:5]['price'].values.tolist()
-# final['image'] = [hotel_image(i) for i in recc[:5]['hotel_name'].values.tolist()]
-#
+final = dict()
+final['address'] = recc[:5]['address'].values.tolist()
+final['amenities'] = recc[:5]['amenities'].values.T.tolist()
+final['experience'] = recc[:5]['hotel_experience'].values.tolist()
+final['name'] = recc[:5]['hotel_name'].values.tolist()
+final['rating'] = recc[:5]['hotel_rating'].values.tolist()
+final['location'] = [i[1:-1] for i in recc[:5]['location'].values.tolist()]
+final['price'] = recc[:5]['price'].values.tolist()
+final['image'] = [hotel_image(i) for i in recc[:5]['hotel_name'].values.tolist()]
+
 
 days = (end.value - start.value).days
 tab_recc = get_hotel_output(days, final)

@@ -1,9 +1,13 @@
 from flask import Flask, request
 import constants
-from model import predict_api_call
+from model import predict_api_call, init_hotel_recc
 import datetime
+from pyspark.sql import SQLContext
+import pyspark
 
 app = Flask(__name__)
+sc=pyspark.SparkContext(appName="project")
+spark = SQLContext(sc)
 
 @app.route('/get_recommadations', methods=('GET', 'POST'))
 def get_recommadations():
@@ -17,4 +21,10 @@ def get_recommadations():
 
     return predict_api_call(province, low, high, cat_rating, begin_date, end_date)
 
+# @app.route('/get_ammenities')
+# def get_ammenities():
+#     return get_top_amenities()
 
+@app.route('/get_hotel_recommandations')
+def get_hotel_recommandations():
+    return init_hotel_recc('british columbia', spark)
