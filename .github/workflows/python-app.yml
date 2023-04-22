@@ -1,0 +1,53 @@
+name: BDA CICD
+
+on:
+  push:
+    branches: [ "rohit-cicd" ]
+    
+env:
+  AWS_REGION_NAME           : "us-east-1"
+
+jobs:
+  
+  Test-Local:
+      runs-on: ubuntu-latest
+      environment:
+        name: Development
+      strategy:
+        matrix:
+          python-version: [3.9]
+
+      steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          
+  DeployBackend:
+    name: DeployBackend
+    
+    runs-on: ubuntu-latest
+    environment:
+      name: Development
+    needs: [Test-Local]
+    steps:
+
+      - uses: actions/checkout@v2 
+      - name: Deploy in EC2
+        env:
+            PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY  }}
+            HOSTNAME : ${{ secrets.HOSTNAME  }}
+            USER_NAME : ${{ secrets.USERNAME  }}
+
+            
+        run: |
+          echo "$PRIVATE_KEY"
+          echo "$PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ${USER_NAME}@${HOSTNAME} '
+            pwd
+          '
+      
