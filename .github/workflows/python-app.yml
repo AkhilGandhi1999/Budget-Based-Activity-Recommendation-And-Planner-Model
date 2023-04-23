@@ -46,8 +46,7 @@ jobs:
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           ssh -o StrictHostKeyChecking=no -i private_key.pem ${USER_NAME}@${HOSTNAME} '
-            cd /home/ec2-user/BDAModel/BDA-Model && echo "changing to BDA-Model" &&
-            git pull && 
-          
+            cd /home/ubuntu/BDA-Model && echo "changing to BDA-Model" &&
+            git pull && gunicorn -b 0.0.0.0:5000 app:app
           '
       
