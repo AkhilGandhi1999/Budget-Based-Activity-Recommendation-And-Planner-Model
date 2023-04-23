@@ -538,7 +538,7 @@ def get_hotel_recc(spark, usrid_s2):
 
 
 
-def init_hotel_recc(place, spark):
+def init_hotel_recc(place, amenities, spark):
 #def init_hotel_recc(name, place, amenities_pref):
         ## Reading file containing hotel details after removing duplicates
     del_dup = spark.read.json(output_str[0] + '/etl/del_dup')
@@ -549,7 +549,7 @@ def init_hotel_recc(place, spark):
     del_dup.createOrReplaceTempView('del_dup')
     newh_df.createOrReplaceTempView('newh_df')
 
-    usr_rating = amenities_rating(spark, [" Suites", " Wheelchair Access", " Microwave", " Breakfast included", "Laundry Service"], newh_df)
+    usr_rating = amenities_rating(spark, amenities, newh_df)
 
     usrid_s2 = model_train(spark, usr_rating)
     u_tempdf = get_hotel_recc(spark, usrid_s2)

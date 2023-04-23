@@ -25,6 +25,8 @@ def get_recommadations():
 # def get_ammenities():
 #     return get_top_amenities()
 
-@app.route('/get_hotel_recommandations')
+@app.route('/get_hotel_recommandations', methods=('GET', 'POST'))
 def get_hotel_recommandations():
-    return init_hotel_recc(request.args.get('province'), spark)
+    province = request.get_json().get('province')
+    amenities = request.get_json().get('amenities')
+    return init_hotel_recc(province, amenities, spark)
