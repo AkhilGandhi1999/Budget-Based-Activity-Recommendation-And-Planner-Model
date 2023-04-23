@@ -17,8 +17,6 @@ from google_images_download import google_images_download
 from PIL import Image
 from nltk.corpus import wordnet
 import subprocess
-import json
-import cv2
 import io
 from base64 import encodebytes
 from PIL import Image
