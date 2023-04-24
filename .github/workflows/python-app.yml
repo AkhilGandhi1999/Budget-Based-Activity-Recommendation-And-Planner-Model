@@ -46,7 +46,7 @@ jobs:
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
           ssh -o StrictHostKeyChecking=no -i private_key.pem ${USER_NAME}@${HOSTNAME} '
-            cd /home/ubuntu/BDA-Model && echo. "killing gunicorn" &&
+            cd /home/ubuntu/BDA-Model && echo "killing gunicorn" &&
             sudo kill pgrep gunicorn
           '
           ssh -o StrictHostKeyChecking=no -i private_key.pem ${USER_NAME}@${HOSTNAME} '
