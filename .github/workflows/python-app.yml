@@ -47,7 +47,11 @@ jobs:
           chmod 600 private_key.pem
           ssh -o StrictHostKeyChecking=no -i private_key.pem ${USER_NAME}@${HOSTNAME} '
             cd /home/ubuntu/BDA-Model && echo "changing to BDA-Model" &&
-            git pull && echo "sending kill to gunicorn" && ps ax | grep gunicorn && sudo pkill -9 gunicorn && echo "kill ran successfully" &&
+            pkill gunicorn
+          '
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ${USER_NAME}@${HOSTNAME} '
+            cd /home/ubuntu/BDA-Model && echo "changing to BDA-Model" &&
+            git pull && echo "running new command" &&
             gunicorn -b 0.0.0.0:5000 app:app --deamon
           '
       
