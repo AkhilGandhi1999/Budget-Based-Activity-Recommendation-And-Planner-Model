@@ -20,6 +20,7 @@ executing==1.2.0
 Flask==2.2.3
 flatbuffers==23.3.3
 fonttools==4.39.3
+gunicorn==20.1.0
 gast==0.4.0
 geographiclib==2.0
 geopy==2.3.0
