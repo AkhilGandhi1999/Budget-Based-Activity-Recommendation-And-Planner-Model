@@ -1,4 +1,5 @@
 from flask import Flask, request
+from flask_cors import CORS
 import constants
 from model import predict_api_call, init_hotel_recc
 import datetime
@@ -6,6 +7,7 @@ from pyspark.sql import SQLContext
 import pyspark
 
 app = Flask(__name__)
+CORS(app)
 sc=pyspark.SparkContext(appName="project")
 spark = SQLContext(sc)
 
