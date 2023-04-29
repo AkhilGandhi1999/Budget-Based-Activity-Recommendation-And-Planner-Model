@@ -29,6 +29,7 @@ def get_recommadations():
 
 @app.route('/get_hotel_recommandations', methods=('GET', 'POST'))
 def get_hotel_recommandations():
-    province = request.get_json().get('province')
+    province = request.get_json().get('province').replace("_", " ")
+    print("priasldfkjasl;dkf" ,  province)
     amenities = request.get_json().get('amenities')
     return init_hotel_recc(province, amenities, spark)
