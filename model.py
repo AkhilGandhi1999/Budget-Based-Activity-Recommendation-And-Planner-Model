@@ -17,8 +17,6 @@ from google_images_download import google_images_download
 from PIL import Image
 from nltk.corpus import wordnet
 import subprocess
-import json
-import cv2
 import io
 from base64 import encodebytes
 from PIL import Image
@@ -482,59 +480,23 @@ def get_hotel_recc(spark, usrid_s2):
 
     return u_tempdf
 
-# def get_image(name):
-#     name = re.sub(' ','_',name)
-#     response = google_images_download.googleimagesdownload()
-#     args_list = ["keywords", "keywords_from_file", "prefix_keywords", "suffix_keywords",
-#              "limit", "format", "color", "color_type", "usage_rights", "size",
-#              "exact_size", "aspect_ratio", "type", "time", "time_range", "delay", "url", "single_image",
-#              "output_directory", "image_directory", "no_directory", "proxy", "similar_images", "specific_site",
-#              "print_urls", "print_size", "print_paths", "metadata", "extract_metadata", "socket_timeout",
-#              "thumbnail", "language", "prefix", "chromedriver", "related_images", "safe_search", "no_numbering",
-#              "offset", "no_download"]
-#     args = {}
-#     for i in args_list:
-#         args[i]= None
-#     args["keywords"] = name
-#     args['limit'] = 1
-#     params = response.build_url_parameters(args)
-#     url = 'https://www.google.com/search?q=' + quote(name) + '&espv=2&biw=1366&bih=667&site=webhp&source=lnms&tbm=isch' + params + '&sa=X&ei=XosDVaCXD8TasATItgE&ved=0CAcQ_AUoAg'
-#     try:
-#         response.download(args)
-#         for filename in glob.glob("downloads/{name}/*jpg".format(name=name))+glob.glob("downloads/{name}/*png".format(name=name)):
-#             return filename
-#     except:
-#         for filename in glob.glob("downloads/*jpg"):
-#             return filename
-
-# def hotel_image(name):
-#     name = name.split(",")[0]
-#     try:
-#       downloader.download(name, limit=1,  output_dir= output_str[0] + 'images2/', adult_filter_off=True, force_replace=False, timeout=60, verbose=True)
         
-#       for filename in glob.glob(output_str[0] + "images2/{name}/*jpg".format(name=name)) + glob.glob("/content/images2/{name}/*png".format(name=name)):
-#             return filename
-#     except:
-#       for filename in glob.glob("/content/images2/*jpg"):
-#             return filename
-        
-# def get_top_amenities():
-#     sc=pyspark.SparkContext(appName="project")
-#     spark = SQLContext(sc)
-#     ## Reading file containing hotel details after removing duplicates
-#     del_dup = spark.read.json( + '/etl/del_dup')
+def get_top_amenities(spark):
+    ## Reading file containing hotel details after removing duplicates
+    del_dup = spark.read.json(output_str[0] + '/etl/del_dup')
 
-#     ## Reading file containing hotel details after removing duplicates and exploding amenities
-#     newh_df = spark.read.json(output_str[0] + '/etl/newh_df')
+    ## Reading file containing hotel details after removing duplicates and exploding amenities
+    newh_df = spark.read.json(output_str[0] + '/etl/newh_df')
 
-#     del_dup.createOrReplaceTempView('del_dup')
-#     newh_df.createOrReplaceTempView('newh_df')
+    del_dup.createOrReplaceTempView('del_dup')
+    newh_df.createOrReplaceTempView('newh_df')
 
-#     ## Finding top 15 amentities to ask users to select inorder to provide hotel recommendations based on amenities chosen
-#     newh1_df  = spark.sql("SELECT amenities,COUNT(amenities) AS tot_count FROM newh_df GROUP BY amenities ORDER BY tot_count DESC")
-#     top_amenities = [x[0] for x in newh1_df.head(16) if x[0] != '']
-#     print(top_amenities)
-#     return top_amenities
+    ## Finding top 15 amentities to ask users to select inorder to provide hotel recommendations based on amenities chosen
+
+    newh1_df  = spark.sql("SELECT amenities,COUNT(amenities) AS tot_count FROM newh_df GROUP BY amenities ORDER BY tot_count DESC")
+    top_amenities = [x[0] for x in newh1_df.head(16) if x[0] != '']
+
+    return top_amenities
 
 
 
@@ -562,7 +524,7 @@ def init_hotel_recc(place, amenities, spark):
     print('user_location', user_location)
     print(hotel_sugg.count())
     recc = hotel_sugg.dropna().toPandas()
-
+    get_top_amenities(spark)   
     # Commented out IPython magic to ensure Python compatibility.
     # %%capture
     final = dict()
@@ -574,7 +536,7 @@ def init_hotel_recc(place, amenities, spark):
     final['location'] = [i[1:-1] for i in recc[:5]['location'].values.tolist()]
     final['price'] = recc[:5]['price'].values.tolist()
     final['image'] = [getBase64Image(i) for i in recc[:5]['hotel_name'].values.tolist()]
-    
+
     return final
 
 def getBase64Image(name):
